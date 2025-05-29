@@ -122,7 +122,7 @@ proxysql:
 # [ProxySQL Updater Service] Settings for custom Go application that updates ProxySQL
 proxysqlUpdater:
   enabled: true # Enable or disable the updater service
-  image: "registry.example.com/proxysql-k8s-discovery:latest" # Custom image for updater
+  image: "opsource/proxysql-k8s-discovery:latest" # Custom image for updater
   imagePullPolicy: IfNotPresent
   resources:
     limits:

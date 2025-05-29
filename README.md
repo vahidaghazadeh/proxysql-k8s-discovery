@@ -32,16 +32,18 @@ A Helm chart for deploying a **highly configurable ProxySQL cluster** with optio
 ## Installation
 
 ```bash
-helm repo add your-repo https://your-org.github.io/your-charts
-helm install proxysql your-repo/proxysql
+helm repo add proxysql-k8s-discovery https://vahidaghazadeh.github.io/proxysql-k8s-discovery
+helm repo update
+helm search repo proxysql-k8s-discovery
 ````
 
 ## Or install directly from a local chart:
 ```bash
-helm install proxysql ./proxysql
+git clone https://github.com/vahidaghazadeh/proxysql-k8s-discovery.git
+helm install proxysql-k8s-discovery ./proxysql-k8s-discovery --namespace namespace 
 ```
 
-## ⚙️ Configuration
+## Configuration
 The chart is highly configurable. The following are key sections you can modify:
 
 ### Global Metadata
@@ -87,7 +89,8 @@ proxysql:
       frontend: 1
       backend: 1
 ```
-## ⚠️ Avoid storing passwords directly in production. Use Kubernetes Secrets instead.
+> [!NOTE]
+> Avoid storing passwords directly in production. Use Kubernetes Secrets instead.
 
 ### Static MySQL Backend Mapping
 #### Enable static mode and specify servers:
