@@ -1,3 +1,25 @@
 apiVersion: v1
-entries: {}
-generated: "2025-05-30T02:17:00.429170131+03:30"
+entries:
+  proxysql-k8s-discovery:
+  - apiVersion: v2
+    created: "2025-05-30T02:24:58.506264397+03:30"
+    description: A tool to dynamically update ProxySQL mysql_servers based on Galera
+      health
+    digest: 42bd6b6e57df5e6a6cef8ff8c2dca87f9a19704cb94beca8771272b7432911c4
+    home: https://github.com/vahidaghazadeh/proxysql-k8s-discovery
+    keywords:
+    - galera
+    - proxysql
+    - database
+    - high-availability
+    maintainers:
+    - email: v.opsource@gmail.com
+      name: Vahid Aghazadeh
+    name: proxysql-k8s-discovery
+    sources:
+    - https://github.com/vahidaghazadeh/proxysql-k8s-discovery
+    type: application
+    urls:
+    - https://vahidaghazadeh.github.io/proxysql-k8s-discovery/proxysql-k8s-discovery-0.1.0.tgz
+    version: 0.1.0
+generated: "2025-05-30T02:24:58.505061707+03:30"
