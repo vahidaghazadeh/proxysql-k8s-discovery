@@ -2,10 +2,11 @@ apiVersion: v1
 entries:
   proxysql-k8s-discovery:
   - apiVersion: v2
-    created: "2025-05-30T02:24:58.506264397+03:30"
-    description: A tool to dynamically update ProxySQL mysql_servers based on Galera
-      health
-    digest: 42bd6b6e57df5e6a6cef8ff8c2dca87f9a19704cb94beca8771272b7432911c4
+    created: "2025-05-30T03:04:12.294192751+03:30"
+    description: A Helm chart for deploying a highly configurable ProxySQL cluster
+      with optional dynamic backend discovery via a custom Go-based updater in a Kubernetes
+      environment.
+    digest: 8a67b2e177de218e8ec1ff92876f5b831b8b7aaceffd0f6b87f69a4f0c6d79ab
     home: https://github.com/vahidaghazadeh/proxysql-k8s-discovery
     keywords:
     - galera
@@ -22,4 +23,4 @@ entries:
     urls:
     - https://vahidaghazadeh.github.io/proxysql-k8s-discovery/proxysql-k8s-discovery-0.1.0.tgz
     version: 0.1.0
-generated: "2025-05-30T02:24:58.505061707+03:30"
+generated: "2025-05-30T03:04:12.292971808+03:30"

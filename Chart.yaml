@@ -1,6 +1,6 @@
 apiVersion: v2
 name: proxysql-k8s-discovery
-description: A tool to dynamically update ProxySQL mysql_servers based on Galera health
+description: A Helm chart for deploying a highly configurable ProxySQL cluster with optional dynamic backend discovery via a custom Go-based updater in a Kubernetes environment.
 
 # A chart can be either an 'application' or a 'library' chart.
 #
