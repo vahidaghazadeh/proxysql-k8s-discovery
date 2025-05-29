@@ -1,0 +1,143 @@
+# [General Settings] Optional overrides for naming Helm resources
+fullnameOverride: "" # Override the full name of the chart
+nameOverride: "" # Override the short name of the chart
+
+# [ProxySQL Main Configuration]
+proxysql:
+  replicaCount: 3 # Number of ProxySQL replicas (enable clustering by using more than one)
+
+  # Docker image for ProxySQL
+  image: "proxysql/proxysql:2.7.1"
+  imagePullPolicy: IfNotPresent # Policy for pulling the image (Always, IfNotPresent, Never)
+
+  # Admin credentials for ProxySQL admin interface
+  adminUser: "admin"
+  adminPassword: "REPLACE_ME" # Use Kubernetes Secret in production
+
+  # Credentials used for cluster synchronization between ProxySQL nodes
+  cluster_username: "cluster_user"
+  cluster_password: "REPLACE_ME"
+
+  # Listening address for ProxySQL admin interface
+  mysql_ifaces: "0.0.0.0:6032"
+
+  # [Clustering & Sync Settings]
+  refresh_interval: 5000
+  cluster_check_interval_ms: 200
+  cluster_check_status_frequency: 100
+  cluster_mysql_query_rules_save_to_disk: "true"
+  cluster_mysql_servers_save_to_disk: "true"
+  cluster_mysql_users_save_to_disk: "true"
+  cluster_proxysql_servers_save_to_disk: "true"
+  cluster_mysql_query_rules_diffs_before_sync: 3
+  cluster_mysql_servers_diffs_before_sync: 3
+  cluster_mysql_users_diffs_before_sync: 3
+  cluster_proxysql_servers_diffs_before_sync: 3
+  log_level: 3 # Log verbosity level (0-7)
+
+  # [Hostgroup Configuration]
+  writer_hostgroup: 10
+  backup_writer_hostgroup: 2
+  reader_hostgroup: 1
+  offline_hostgroup: 4
+  active: 1
+  max_writers: 3
+  writer_is_also_reader: 1
+  max_transactions_behind: 100
+
+  # [Resources Configuration] CPU and memory limits/requests for ProxySQL containers
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+  # [ProxySQL Users] List of users to be added to ProxySQL with permissions
+  # [MySQL Users Configuration for ProxySQL]
+  # This section defines users that ProxySQL will accept connections from.
+  # These users are visible to clients connecting to ProxySQL (frontend),
+  # and can be used to authenticate to backend MySQL servers (backend).
+  # users:
+  #   - username: "app_writer_user"           Username used by application for writing
+  #     password: "ReplaceWithSecurePassword" Password for authentication
+  #     default_hostgroup: 0                  Hostgroup this user connects to by default (e.g., 0 for writers)
+  #     active: 1                             Whether the user is active (1) or disabled (0)
+  #     use_client_addr: 0                    Whether to match incoming client IP (set to 0 to allow any IP)
+  #     frontend: 1                           Whether the user can connect from client to ProxySQL (1 = yes)
+  #     backend: 1                            Whether this user can be used internally to connect to backend MySQL servers
+  #     fast_forward: 0                       If set to 1, skips query processing rules for this user
+  #     transaction_persistent: 0             If set to 1, keeps same backend server for duration of transaction
+  users: []
+
+  # Optional static list of backend MySQL servers (if not using dynamic discovery)
+  # [MySQL Servers] Define static backend MySQL servers if static_mod is true.
+  # These servers will be rendered inside proxysql.cnf like:
+  # mysql_servers = (
+  #   { address = "10.244.10.10", port = 3306, hostgroup = 0, max_connections = 100 },
+  #   ...
+  # )
+  # servers:
+  #   - address: "10.244.10.10"     IP or DNS of backend MySQL server
+  #     port: 3306                  MySQL port
+  #     hostgroup: 0                Hostgroup to assign (0 = writer, 1 = reader, etc.)
+  #     max_connections: 100        Maximum allowed connections to this server
+  servers: []
+
+  # [MySQL Interface Settings for ProxySQL]
+  mysql:
+    static_mod: "true" # Whether MySQL servers should be statically defined
+    max_connections: 2048
+    default_query_delay: 0
+    default_query_timeout: 36000000
+    have_compress: true
+    poll_timeout: 2000
+    interfaces: "0.0.0.0:6033;/tmp/proxysql.sock"
+    default_schema: "information_schema"
+    stacksize: 1048576
+    server_version: "5.1.30"
+    connect_timeout_server: 10000
+    monitor_history: 60000
+    monitor_connect_interval: 60000
+    monitor_ping_interval: 60000
+    ping_interval_server_msec: 10000
+    ping_timeout_server: 500
+    commands_stats: true
+    sessions_sort: true
+
+    # ProxySQL monitor user for backend Galera or MySQL
+    monitor_username: "monitor"
+    monitor_password: "REPLACE_ME"
+
+    monitor_galera_healthcheck_interval: 5000
+    monitor_galera_healthcheck_timeout: 2000
+    query_cache_size_MB: 256
+    query_cache_strip_comments: true
+    query_cache_purge_interval: 300
+
+    # Optional static MySQL servers list
+    servers: []
+
+# [ProxySQL Updater Service] Settings for custom Go application that updates ProxySQL
+proxysqlUpdater:
+  enabled: true # Enable or disable the updater service
+  image: "registry.example.com/proxysql-k8s-discovery:latest" # Custom image for updater
+  imagePullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+# [External Galera Cluster Configuration]
+externalGalera:
+  enabled: true # Enable connection to an external Galera cluster
+  namespace: "mariadb-cluster" # Namespace where Galera is deployed
+  headlessServiceName: "mariadb-cluster-mariadb-galera-headless" # Headless service for Galera stateful set
+  port: 3306 # MySQL port for Galera
+  hostgroup: 0 # Hostgroup ID to assign Galera servers in ProxySQL
+  passwordSecretName: "mariadb-monitor-password" # Secret name that stores monitor password
+  monitorPassword: "REPLACE_ME"

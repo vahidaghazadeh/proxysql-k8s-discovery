@@ -1,0 +1,119 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "proxysql-k8s-discovery.fullname" . }}-proxysql-config
+  labels:
+    {{- include "proxysql-k8s-discovery.labels" . | nindent 4 }}
+    app.kubernetes.io/component: proxysql
+data:
+  proxysql.cnf: |
+    datadir="/var/lib/proxysql"
+    admin_variables=
+    {
+      admin_credentials="{{ .Values.proxysql.adminUser }}:{{ required "A proxysql.adminPassword is required!" .Values.proxysql.adminPassword }};{{ .Values.proxysql.cluster_username }}:{{ .Values.proxysql.cluster_password }}"
+      admin-stats_credentials: "stats:stats"
+      mysql_ifaces="{{ .Values.proxysql.mysql_ifaces }}"
+      refresh_interval={{ .Values.proxysql.refresh_interval }}
+      read_only=false
+      restrict_localhost=false
+      cluster_username="{{ .Values.proxysql.cluster_username }}"
+      cluster_password="{{ .Values.proxysql.cluster_password }}"
+      cluster_check_interval_ms={{ .Values.proxysql.cluster_check_interval_ms }}
+      cluster_check_status_frequency={{ .Values.proxysql.cluster_check_status_frequency }}
+      cluster_mysql_query_rules_save_to_disk={{ .Values.proxysql.cluster_mysql_query_rules_save_to_disk }}
+      cluster_mysql_servers_save_to_disk={{ .Values.proxysql.cluster_mysql_servers_save_to_disk }}
+      cluster_mysql_users_save_to_disk={{ .Values.proxysql.cluster_mysql_users_save_to_disk }}
+      cluster_proxysql_servers_save_to_disk={{ .Values.proxysql.cluster_proxysql_servers_save_to_disk }}
+      cluster_mysql_query_rules_diffs_before_sync={{ .Values.proxysql.cluster_mysql_query_rules_diffs_before_sync }}
+      cluster_mysql_servers_diffs_before_sync={{ .Values.proxysql.cluster_mysql_servers_diffs_before_sync }}
+      cluster_mysql_users_diffs_before_sync={{ .Values.proxysql.cluster_mysql_users_diffs_before_sync }}
+      cluster_proxysql_servers_diffs_before_sync={{ .Values.proxysql.cluster_proxysql_servers_diffs_before_sync }}
+      logfile="/var/lib/proxysql/proxysql.log"
+      log_level={{ .Values.proxysql.log_level }}
+    }
+
+    mysql_variables=
+    {
+      max_connections={{ .Values.proxysql.mysql.max_connections }}
+      default_query_delay={{ .Values.proxysql.mysql.default_query_delay }}
+      default_query_timeout={{ .Values.proxysql.mysql.default_query_timeout }}
+      have_compress={{ .Values.proxysql.mysql.have_compress }}
+      poll_timeout={{ .Values.proxysql.mysql.poll_timeout }}
+      interfaces="{{ .Values.proxysql.mysql.interfaces }}"
+      default_schema="{{ .Values.proxysql.mysql.default_schema }}"
+      stacksize={{ .Values.proxysql.mysql.stacksize }}
+      server_version="{{ .Values.proxysql.mysql.server_version }}"
+      connect_timeout_server={{ .Values.proxysql.mysql.connect_timeout_server }}
+      monitor_history={{ .Values.proxysql.mysql.monitor_history }}
+      monitor_connect_interval={{ .Values.proxysql.mysql.monitor_connect_interval }}
+      monitor_ping_interval={{ .Values.proxysql.mysql.monitor_ping_interval }}
+      ping_interval_server_msec={{ .Values.proxysql.mysql.ping_interval_server_msec }}
+      ping_timeout_server={{ .Values.proxysql.mysql.ping_timeout_server }}
+      commands_stats={{ .Values.proxysql.mysql.commands_stats }}
+      sessions_sort={{ .Values.proxysql.mysql.sessions_sort }}
+      monitor_username="{{ .Values.proxysql.mysql.monitor_username }}"
+      monitor_password="{{ .Values.proxysql.mysql.monitor_password }}"
+      monitor_galera_healthcheck_interval={{ .Values.proxysql.mysql.monitor_galera_healthcheck_interval }}
+      monitor_galera_healthcheck_timeout={{ .Values.proxysql.mysql.monitor_galera_healthcheck_timeout }}
+      query_cache_size_MB={{ .Values.proxysql.mysql.query_cache_size_MB }}
+      query_cache_strip_comments={{ .Values.proxysql.mysql.query_cache_strip_comments }}
+      query_cache_purge_interval={{ .Values.proxysql.mysql.query_cache_purge_interval }}
+    }
+
+    mysql_galera_hostgroups =
+    (
+    {
+    writer_hostgroup={{ .Values.proxysql.writer_hostgroup }}
+    backup_writer_hostgroup={{ .Values.proxysql.backup_writer_hostgroup }}
+    reader_hostgroup={{ .Values.proxysql.reader_hostgroup }}
+    offline_hostgroup={{ .Values.proxysql.offline_hostgroup }}
+    active={{ .Values.proxysql.active }}
+    max_writers={{ .Values.proxysql.max_writers }}
+    writer_is_also_reader={{ .Values.proxysql.writer_is_also_reader }}
+    max_transactions_behind={{ .Values.proxysql.max_transactions_behind }}
+    }
+    )
+
+    mysql_query_rules =
+    (
+    { rule_id=1, match_pattern="^(INSERT|UPDATE|DELETE|REPLACE|CREATE|DROP|ALTER|TRUNCATE)", destination_hostgroup=0, apply=1 },
+    { rule_id=2, match_pattern="^SELECT", destination_hostgroup=1, apply=1 },
+    { rule_id=99, match_pattern=".*", destination_hostgroup=0, apply=1 }
+    )
+
+    # mysql_servers section is dynamically managed by galera-proxysql
+    {{- if .Values.proxysql.mysql.static_mod }}
+     mysql_servers =
+    (
+    {{- range .Values.proxysql.mysql.servers }}
+    { address = "{{ .address }}", port={{ .port }}, hostgroup={{ .hostgroup }}, max_connections={{ .max_connections }} },
+    {{- end }}
+    )
+    {{- end }}
+
+    # ProxySQL servers (from array in values.yaml)
+    proxysql_servers =
+    (
+    {{- range .Values.proxysql.servers }}
+    { hostname = "{{ .hostname }}", port={{ .port }}, weight={{ .weight }} },
+    {{- end }}
+    )
+
+    # Users connecting to ProxySQL (from array in values.yaml)
+    mysql_users =
+    (
+      {{- range .Values.proxysql.users }}
+    {
+    username = "{{ .username }}",
+    password = "{{ .password }}",
+    default_hostgroup = {{ .default_hostgroup }},
+    active = {{ .active }},
+    use_ssl = {{ .use_ssl | default 0 }},
+    transaction_persistent = {{ .transaction_persistent | default 0 }},
+    fast_forward = {{ .fast_forward | default 0 }},
+    backend = {{ .backend | default 1 }},
+    frontend = {{ .frontend | default 1 }},
+    use_client_addr = {{ .use_client_addr | default 0 }}
+    },
+      {{- end }}
+    )

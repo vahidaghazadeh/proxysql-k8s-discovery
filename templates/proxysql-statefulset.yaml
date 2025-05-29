@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: StatefulSet # Changed from Deployment to StatefulSet
+metadata:
+  name: {{ include "proxysql-k8s-discovery.fullname" . }}-proxysql
+  labels:
+    {{- include "proxysql-k8s-discovery.labels" . | nindent 4 }}
+    app.kubernetes.io/component: proxysql
+spec:
+  serviceName: {{ include "proxysql-k8s-discovery.proxysqlHeadlessServiceName" . }} # Points to the new headless service
+  replicas: {{ .Values.proxysql.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "proxysql-k8s-discovery.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: proxysql
+  template:
+    metadata:
+      labels:
+        {{- include "proxysql-k8s-discovery.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: proxysql
+    spec:
+      containers:
+        - name: proxysql
+          image: "{{ .Values.proxysql.image }}"
+          imagePullPolicy: {{ .Values.proxysql.imagePullPolicy }}
+          ports:
+            - containerPort: 6032 # ProxySQL admin port
+              name: admin
+            - containerPort: 6033 # ProxySQL client port
+              name: client
+          env:
+            - name: PROXYSQL_ADMIN_USER
+              value: {{ .Values.proxysql.adminUser | quote }}
+            - name: PROXYSQL_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "proxysql-k8s-discovery.proxysqlAdminSecretName" . }}
+                  key: password
+          volumeMounts:
+            - name: proxysql-config-volume
+              mountPath: /etc/proxysql.cnf
+              subPath: proxysql.cnf # Mounts only proxysql.cnf file
+          livenessProbe:
+            tcpSocket:
+              port: 6032
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: 6032
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.proxysql.resources | nindent 12 }}
+      volumes:
+        - name: proxysql-config-volume
+          configMap:
+            name: {{ include "proxysql-k8s-discovery.fullname" . }}-proxysql-config

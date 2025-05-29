@@ -1,0 +1,37 @@
+{{- if .Values.proxysqlUpdater.enabled }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "proxysql-k8s-discovery.fullname" . }}-proxysql-updater-sa # ServiceAccount name
+  labels:
+    {{- include "proxysql-k8s-discovery.labels" . | nindent 4 }} # Common labels
+    app.kubernetes.io/component: proxysql-updater # Component label
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole # Changed from Role to ClusterRole for cluster-wide access
+metadata:
+  name: {{ include "proxysql-k8s-discovery.fullname" . }}-proxysql-updater-clusterrole # ClusterRole name
+  labels:
+    {{- include "proxysql-k8s-discovery.labels" . | nindent 4 }} # Common labels
+    app.kubernetes.io/component: proxysql-updater # Component label
+rules:
+  - apiGroups: [""] # Core API group
+    resources: ["endpoints", "pods"] # Resource to access
+    verbs: ["get", "watch", "list"] # Verbs (permissions)
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding # ClusterRoleBinding to bind ServiceAccount to ClusterRole
+metadata:
+  name: {{ include "proxysql-k8s-discovery.fullname" . }}-proxysql-updater-clusterrolebinding # ClusterRoleBinding name
+  labels:
+    {{- include "proxysql-k8s-discovery.labels" . | nindent 4 }} # Common labels
+    app.kubernetes.io/component: proxysql-updater # Component label
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole # Refers to the ClusterRole
+  name: {{ include "proxysql-k8s-discovery.fullname" . }}-proxysql-updater-clusterrole
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "proxysql-k8s-discovery.fullname" . }}-proxysql-updater-sa # ServiceAccount name
+    namespace: {{ .Release.Namespace }} # Namespace of the ServiceAccount
+{{- end }}

@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "proxysql-k8s-discovery.name" . }}-proxysql-updater-to-proxysql-admin # Name of the NetworkPolicy
+  namespace: {{ .Release.Namespace }} # NetworkPolicy applies to the release's namespace (proxysql)
+  labels:
+    {{- include "proxysql-k8s-discovery.labels" . | nindent 4 }} # Common labels
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: proxysql # Selects the ProxySQL pods as the target
+  policyTypes:
+    - Ingress # This policy applies to incoming connections
+  ingress:
+    - from: # Allow connections from specific pods
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: proxysql-updater # Selects the proxysql-updater pods
+      ports:
+        - protocol: TCP # Allow TCP protocol
+          port: 6032 # Allow connection to port 6032 (ProxySQL admin port)

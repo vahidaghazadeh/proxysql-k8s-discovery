@@ -1,0 +1,10 @@
+1. Galera Cluster and ProxySQL have been deployed.
+2. The ProxySQL Updater is running and will automatically update Galera server IPs.
+
+To connect to ProxySQL (client port 6033):
+  kubectl exec -it <proxysql-pod-name> -- mysql -h 127.0.0.1 -P 6033 -u <your-proxysql-client-user> -p<your-proxysql-client-password>
+
+To access ProxySQL admin interface (port 6032):
+  kubectl exec -it <proxysql-pod-name> -- mysql -h 127.0.0.1 -P 6032 -u admin -p<your-proxysql-admin-password>
+
+Remember to replace <proxysql-pod-name>, <your-proxysql-client-user>, <your-proxysql-client-password>, and <your-proxysql-admin-password> with your actual values.

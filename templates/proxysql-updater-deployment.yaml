@@ -1,0 +1,81 @@
+{{- if .Values.proxysqlUpdater.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "proxysql-k8s-discovery.name" . }}-updater # Name of the updater deployment, using chart's name
+  labels:
+    {{- include "proxysql-k8s-discovery.labels" . | nindent 4 }} # Common labels
+    app.kubernetes.io/component: proxysql-updater # Component label
+spec:
+  replicas: 1 # Usually one replica is sufficient for the updater
+  selector:
+    matchLabels:
+      {{- include "proxysql-k8s-discovery.selectorLabels" . | nindent 6 }} # Selector labels
+      app.kubernetes.io/component: proxysql-updater # Component label
+  template:
+    metadata:
+      labels:
+        {{- include "proxysql-k8s-discovery.selectorLabels" . | nindent 8 }} # Selector labels
+        app.kubernetes.io/component: proxysql-updater # Component label
+    spec:
+      serviceAccountName: {{ include "proxysql-k8s-discovery.proxysqlUpdaterServiceAccountName" . }} # ServiceAccount name for RBAC, using specific helper
+      initContainers: # Init Container to wait for ProxySQL to be ready
+        - name: wait-for-proxysql
+          image: busybox:1.36 # A small image for waiting
+          command: ['sh', '-c', 'until nc -z -w 5 {{ include "proxysql-k8s-discovery.proxysqlServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local 6032; do echo waiting for proxysql; sleep 5; done;']
+          # This command waits until the ProxySQL admin port (6032) is reachable.
+      containers:
+        - name: proxysql-updater # Container name
+          image: "{{ .Values.proxysqlUpdater.image }}" # Container image
+          imagePullPolicy: {{ .Values.proxysqlUpdater.imagePullPolicy | default "IfNotPresent" }} # Image pull policy
+          # Removed securityContext as it was for debugging and not needed for official image
+          env:
+            - name: PROXYSQL_ADMIN_USER
+              value: {{ .Values.proxysql.cluster_username | quote }} # ProxySQL admin username env var
+            - name: PROXYSQL_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "proxysql-k8s-discovery.proxysqlClusterSecretName" . }} # Admin password secret name
+                  key: password # Key in the secret
+            - name: PROXYSQL_ADMIN_HOST
+              value: "{{ include "proxysql-k8s-discovery.proxysqlServiceName" . }}.{{ .Release.Namespace }}.svc.cluster.local" # ProxySQL admin host env var
+            # Environment variables for external Galera
+            - name: GALERA_HEADLESS_SERVICE_NAME
+              value: {{ .Values.externalGalera.headlessServiceName | quote }} # Galera headless service name env var
+            - name: GALERA_NAMESPACE
+              value: {{ .Values.externalGalera.namespace | quote }} # Galera namespace env var
+            - name: GALERA_PORT
+              value: {{ .Values.externalGalera.port | quote }} # Galera port env var
+            - name: GALERA_HOSTGROUP
+              value: {{ .Values.externalGalera.hostgroup | quote }} # Galera hostgroup env var
+            - name: POD_NAMESPACE # Current pod's namespace (for client-go)
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace # Get namespace from pod metadata
+            - name: WRITER_HOST_GROUP
+              value: "{{ .Values.proxysql.writer_hostgroup }}"
+            - name: READER_HOST_GROUP
+              value: "{{ .Values.proxysql.reader_hostgroup }}"
+            - name: BACKUP_WRITER_HOST_GROUP
+              value: "{{ .Values.proxysql.backup_writer_hostgroup }}"
+            - name: OFFLINE_HOST_GROUP
+              value: "{{ .Values.proxysql.offline_hostgroup }}"
+            - name: MAX_WRITERS
+              value: "{{ .Values.proxysql.max_writers }}"
+          resources:
+            {{- toYaml .Values.proxysqlUpdater.resources | nindent 12 }} # Resource limits and requests
+          livenessProbe: # Liveness probe for the updater application
+            exec:
+              command: ["pidof", "proxysql-updater"] # Checks if the updater process is running
+            initialDelaySeconds: 30 # Initial delay before probe starts
+            periodSeconds: 10 # How often to perform the probe
+            timeoutSeconds: 5 # Timeout for the probe command
+            failureThreshold: 3 # Number of consecutive failures for restart
+          readinessProbe: # Readiness probe for the updater application
+            exec:
+              command: ["pidof", "proxysql-updater"] # Checks if the updater process is running
+            initialDelaySeconds: 10 # Initial delay before probe starts
+            periodSeconds: 5 # How often to perform the probe
+            timeoutSeconds: 3 # Timeout for the probe command
+            failureThreshold: 1 # Number of consecutive failures for unready status
+{{- end }}
