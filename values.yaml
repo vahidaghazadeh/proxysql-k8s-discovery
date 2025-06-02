@@ -119,6 +119,13 @@ proxysql:
     # Optional static MySQL servers list
     servers: []
 
+  networkPolicy:
+    allowAccessFromAllNamespaces: true
+    allowedPodSelector:
+      enabled: false
+      matchLabels:
+        app.kubernetes.io/component: proxysql-updater
+
 # [ProxySQL Updater Service] Settings for custom Go application that updates ProxySQL
 proxysqlUpdater:
   enabled: true # Enable or disable the updater service

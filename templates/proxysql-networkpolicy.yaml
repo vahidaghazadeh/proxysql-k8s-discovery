@@ -13,9 +13,17 @@ spec:
     - Ingress # This policy applies to incoming connections
   ingress:
     - from: # Allow connections from specific pods
+      {{- if .Values.proxysql.networkPolicy.allowAccessFromAllNamespaces }}
+        - namespaceSelector: { }
+      {{- else if .Values.proxysql.networkPolicy.allowedPodSelector.enabled }}
         - podSelector:
             matchLabels:
-              app.kubernetes.io/component: proxysql-updater # Selects the proxysql-updater pods
+              {{- toYaml .Values.proxysql.networkPolicy.allowedPodSelector.matchLabels | nindent 14 }}
+      {{- else }}
+        - podSelector: { }
+      {{- end }}
       ports:
         - protocol: TCP # Allow TCP protocol
           port: 6032 # Allow connection to port 6032 (ProxySQL admin port)
+        - protocol: TCP
+          port: 6033
